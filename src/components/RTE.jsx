@@ -1,6 +1,7 @@
 import React from "react";
 import { Editor } from "@tinymce/tinymce-react";
 import { Controller } from "react-hook-form";
+import appwriteService from "../appwrite/config";
 
 export default function RTE({ name, control, label, defaultValue = "" }) {
   return (
@@ -40,6 +41,38 @@ export default function RTE({ name, control, label, defaultValue = "" }) {
                 "wordcount",
                 "anchor",
               ],
+              automatic_uploads: true,
+              file_picker_types: "image",
+
+              file_picker_callback: async (callback, value, meta) => {
+                if (meta.filetype === "image") {
+                  const input = document.createElement("input");
+
+                  input.setAttribute("type", "file");
+                  input.setAttribute("accept", "image/*");
+
+                  input.onchange = async () => {
+                    const file = input.files[0];
+
+                    try {
+                      const uploadedFile =
+                        await appwriteService.uploadFile(file);
+
+                      const imageUrl = appwriteService.getFilePreview(
+                        uploadedFile.$id,
+                      )?.href;
+
+                      callback(imageUrl, {
+                        title: file.name,
+                      });
+                    } catch (error) {
+                      console.error(error);
+                    }
+                  };
+
+                  input.click();
+                }
+              },
               toolbar:
                 "undo redo | blocks | image | bold italic forecolor | alignleft aligncenter bold italic forecolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent |removeformat | help",
               content_style:

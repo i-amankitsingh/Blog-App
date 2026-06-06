@@ -1,59 +1,9 @@
-// import React from "react";
-// import appwriteService from "../appwrite/config";
-// import { Link } from "react-router-dom";
-
-// function PostCard({ $id, title, image }) {
-//   console.log(image);
-//   console.log(appwriteService.getFilePreview(image));
-//   console.log("image", appwriteService.getFilePreview(image)?.href);
-
-//   const imageUrl = image
-//     ? appwriteService.getFilePreview(image)?.href
-//     : "https://placehold.co/500x500?text=No+Image";
-
-//   return (
-//     <Link to={`/post/${$id}`}>
-//       <div
-//         className="
-//           bg-white
-//           rounded-2xl
-//           overflow-hidden
-//           border
-//           border-gray-200
-//           hover:shadow-xl
-//           transition-all
-//           duration-300
-//         "
-//       >
-//         <img
-//           src={imageUrl}
-//           alt={title}
-//           className="
-//             w-full
-//             h-56
-//             object-cover
-//           "
-//           onError={(e) => {
-//             e.target.src =
-//               "https://placehold.co/500x500?text=Image+Unavailable";
-//           }}
-//         />
-
-//         <div className="p-5">
-//           <h2 className="font-bold text-xl line-clamp-2">{title}</h2>
-//         </div>
-//       </div>
-//     </Link>
-//   );
-// }
-
-// export default PostCard;
-
-import React from "react";
+import React, { useState } from "react";
 import appwriteService from "../appwrite/config";
 import { Link, useNavigate } from "react-router-dom";
 
-function PostCard({ $id, title, image, content }) {
+function PostCard({ $id, title, slug, image, content }) {
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const navigate = useNavigate();
 
   const imageUrl = image
@@ -62,15 +12,7 @@ function PostCard({ $id, title, image, content }) {
 
   const previewText = content?.replace(/<[^>]*>/g, "")?.substring(0, 120);
 
-  const handleDelete = async (e) => {
-    e.preventDefault();
-
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this post?",
-    );
-
-    if (!confirmDelete) return;
-
+  const handleDelete = async () => {
     const deleted = await appwriteService.deletePost($id);
 
     if (deleted) {
@@ -144,22 +86,66 @@ function PostCard({ $id, title, image, content }) {
           </button>
 
           <button
-            onClick={handleDelete}
+            onClick={() => setShowDeleteModal(true)}
             className="
-            flex-1
-            py-2.5
-            rounded-xl
-            bg-red-50
-            text-red-600
-            font-medium
-            hover:bg-red-100
-            transition
-          "
+    flex-1
+    py-2.5
+    rounded-xl
+    bg-red-50
+    text-red-600
+    font-medium
+    hover:bg-red-100
+    transition
+  "
           >
             Delete
           </button>
         </div>
       </div>
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
+            <h3 className="text-xl font-bold text-gray-900">Delete Post</h3>
+
+            <p className="mt-3 text-gray-600">
+              Are you sure you want to delete this post? This action cannot be
+              undone.
+            </p>
+
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="
+            flex-1
+            py-2.5
+            rounded-xl
+            border
+            border-gray-300
+            hover:bg-gray-100
+            transition
+          "
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={handleDelete}
+                className="
+            flex-1
+            py-2.5
+            rounded-xl
+            bg-red-600
+            text-white
+            hover:bg-red-700
+            transition
+          "
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Button, Input, RTE, Select } from "..";
 import appwriteService from "../../appwrite/config";
@@ -10,42 +10,97 @@ export default function PostForm({ post }) {
     useForm({
       defaultValues: {
         title: post?.title || "",
-        slug: post?.$id || "",
+        slug: post?.slug || "",
         content: post?.content || "",
         status: post?.status || "active",
       },
     });
 
+  const [preview, setPreview] = useState(
+    post?.image ? appwriteService.getFilePreview(post.image) : null,
+  );
+  const [loading, setLoading] = useState(false);
+
   const navigate = useNavigate();
   const userData = useSelector((state) => state.auth.userData);
-  console.log("Post: ", post);
+
+  // const submit = async (data) => {
+  //   if (post) {
+  //     const file = data.image?.[0]
+  //       ? await appwriteService.uploadFile(data.image[0])
+  //       : null;
+
+  //     if (file && post.image) {
+  //       await appwriteService.deleteFile(post.image);
+  //     }
+
+  //     const dbPost = await appwriteService.updatePost(post.$id, {
+  //       title: data.title,
+  //       content: data.content,
+  //       featuredImage: file ? file.$id : post.image,
+  //       status: data.status,
+  //     });
+
+  //     if (dbPost) {
+  //       navigate(`/post/${dbPost.$id}`);
+  //     }
+  //   } else {
+  //     const file = await appwriteService.uploadFile(data.image[0]);
+
+  //     if (!file) return;
+
+  //     const dbPost = await appwriteService.createPost({
+  //       title: data.title,
+  //       slug: data.slug,
+  //       content: data.content,
+  //       featuredImage: file.$id,
+  //       status: data.status,
+  //       userId: userData.$id,
+  //     });
+
+  //     if (dbPost) {
+  //       navigate(`/post/${dbPost.$id}`);
+  //     }
+  //   }
+  // };
+
   const submit = async (data) => {
-    console.log("Data ", data);
-    if (post) {
-      const file = data.image[0]
-        ? await appwriteService.uploadFile(data.image[0])
-        : null;
+    try {
+      setLoading(true);
 
-      if (file) {
-        appwriteService.deleteFile(post.featuredImage);
-      }
+      if (post) {
+        const file = data.image?.[0]
+          ? await appwriteService.uploadFile(data.image[0])
+          : null;
 
-      const dbPost = await appwriteService.updatePost(post.$id, {
-        ...data,
-        featuredImage: file ? file.$id : undefined,
-      });
+        if (file && post.image) {
+          await appwriteService.deleteFile(post.image);
+        }
 
-      if (dbPost) {
-        navigate(`/post/${dbPost.$id}`);
-      }
-    } else {
-      const file = await appwriteService.uploadFile(data.image[0]);
+        const dbPost = await appwriteService.updatePost(post.$id, {
+          title: data.title,
+          content: data.content,
+          featuredImage: file ? file.$id : post.image,
+          status: data.status,
+        });
 
-      if (file) {
-        const fileId = file.$id;
-        data.featuredImage = fileId;
+        if (dbPost) {
+          navigate(`/post/${dbPost.$id}`);
+        }
+      } else {
+        const file = await appwriteService.uploadFile(data.image[0]);
+
+        if (!file) {
+          setLoading(false);
+          return;
+        }
+
         const dbPost = await appwriteService.createPost({
-          ...data,
+          title: data.title,
+          slug: data.slug,
+          content: data.content,
+          featuredImage: file.$id,
+          status: data.status,
           userId: userData.$id,
         });
 
@@ -53,6 +108,10 @@ export default function PostForm({ post }) {
           navigate(`/post/${dbPost.$id}`);
         }
       }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -148,15 +207,81 @@ export default function PostForm({ post }) {
                     Featured Image
                   </label>
 
-                  <div className="rounded-2xl border-2 border-dashed border-gray-300 p-4">
-                    <Input
+                  <div className="relative">
+                    <label
+                      htmlFor="image-upload"
+                      className="
+      flex
+      flex-col
+      items-center
+      justify-center
+      w-full
+      h-64
+      border-2
+      border-dashed
+      border-gray-300
+      rounded-3xl
+      cursor-pointer
+      bg-gray-50
+      hover:bg-gray-100
+      transition-all
+      duration-300
+      group
+    "
+                    >
+                      <svg
+                        className="w-12 h-12 text-gray-400 group-hover:scale-110 transition"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="1.5"
+                          d="M12 16V4m0 0l-4 4m4-4l4 4M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2"
+                        />
+                      </svg>
+
+                      <p className="mt-4 text-lg font-medium text-gray-700">
+                        Upload Featured Image
+                      </p>
+
+                      <p className="mt-1 text-sm text-gray-500">
+                        Drag & Drop or Click to Browse
+                      </p>
+
+                      <p className="mt-2 text-xs text-gray-400">
+                        PNG, JPG, JPEG, GIF
+                      </p>
+                    </label>
+
+                    <input
+                      id="image-upload"
                       type="file"
-                      accept="image/png, image/jpg, image/jpeg, image/gif"
+                      accept="image/png,image/jpg,image/jpeg,image/gif"
+                      className="hidden"
                       {...register("image", {
                         required: !post,
+                        onChange: (e) => {
+                          const file = e.target.files?.[0];
+
+                          if (file) {
+                            setPreview(URL.createObjectURL(file));
+                          }
+                        },
                       })}
                     />
                   </div>
+                  {preview && (
+                    <div className="mt-5 overflow-hidden rounded-3xl border border-gray-200">
+                      <img
+                        src={preview}
+                        alt="Preview"
+                        className="h-64 w-full object-cover"
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {post && (
@@ -167,7 +292,7 @@ export default function PostForm({ post }) {
 
                     <div className="overflow-hidden rounded-2xl border border-gray-200">
                       <img
-                        src={appwriteService.getFilePreview(post.image)}
+                        src={appwriteService.getFilePreview(post.image)?.href}
                         alt={post.title}
                         className="h-56 w-full object-cover"
                       />
@@ -189,7 +314,7 @@ export default function PostForm({ post }) {
                 </div>
 
                 <div className="pt-2">
-                  <Button
+                  {/* <Button
                     type="submit"
                     className={`w-full rounded-2xl py-4 text-base font-semibold text-white transition-all duration-200 ${
                       post
@@ -198,6 +323,32 @@ export default function PostForm({ post }) {
                     }`}
                   >
                     {post ? "Update Article" : "Publish Article"}
+                  </Button> */}
+                  <Button
+                    type="submit"
+                    disabled={loading}
+                    className={`w-full rounded-2xl py-4 text-base font-semibold text-white transition-all duration-200 ${
+                      loading
+                        ? "bg-gray-400 cursor-not-allowed"
+                        : post
+                          ? "bg-emerald-600 hover:bg-emerald-700"
+                          : "bg-black hover:bg-gray-800"
+                    }`}
+                  >
+                    {loading ? (
+                      <div className="flex items-center justify-center gap-3">
+                        <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                        <span>
+                          {post
+                            ? "Updating Article..."
+                            : "Publishing Article..."}
+                        </span>
+                      </div>
+                    ) : post ? (
+                      "Update Article"
+                    ) : (
+                      "Publish Article"
+                    )}
                   </Button>
                 </div>
               </div>

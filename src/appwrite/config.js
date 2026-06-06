@@ -19,7 +19,7 @@ export class Service {
       return await this.databases.createDocument(
         conf.appwriteDatabaseId,
         conf.appwriteCollectionId,
-        userId,
+        ID.unique(),
         {
           slug,
           title,
@@ -34,12 +34,12 @@ export class Service {
     }
   }
 
-  async updatePost(slug, { title, content, featuredImage, status }) {
+  async updatePost(documentId, { title, content, featuredImage, status }) {
     try {
       return await this.databases.updateDocument(
         conf.appwriteDatabaseId,
         conf.appwriteCollectionId,
-        slug,
+        documentId,
         {
           title,
           content,
@@ -52,12 +52,12 @@ export class Service {
     }
   }
 
-  async deletePost(slug) {
+  async deletePost(documentId) {
     try {
       await this.databases.deleteDocument(
         conf.appwriteDatabaseId,
         conf.appwriteCollectionId,
-        slug,
+        documentId,
       );
       return true;
     } catch (err) {
@@ -66,12 +66,12 @@ export class Service {
     }
   }
 
-  async getPost(slug) {
+  async getPost(documentId) {
     try {
       return await this.databases.getDocument(
         conf.appwriteDatabaseId,
         conf.appwriteCollectionId,
-        slug,
+        documentId,
       );
     } catch (err) {
       console.log("Appwrite Service : getPost Error: ", err);
